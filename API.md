@@ -24,6 +24,27 @@ While we still allow making requests without a key, services which make too many
 
 The key is applied to the end of the request string like this: `api.blockchair.com/bitcoin/blocks?key=MYSECRETKEY`. Please remember that your key is a secret -- don't disclose it to client-side applications as unauthorized users may start to use your key.
 
+### Performance Best Practices
+
+To ensure optimal performance and cost-efficiency:
+
+1. **Use batch endpoints** instead of making multiple individual requests:
+   - ✅ `/bitcoin/dashboards/addresses/addr1,addr2,...,addr100` (costs 10.9 points, ~1 second)
+   - ❌ 100 separate `/bitcoin/dashboards/address/{:addr}` calls (costs 100 points, ~100 seconds)
+   
+2. **Use specialized endpoints** when you only need specific data:
+   - For balance checks only: `/bitcoin/addresses/balances` (POST) - handles 25,000 addresses in <1 second for only 26 request points
+   - Use `?limit=0` to get only stats without transactions/UTXOs
+   - Use `?limit=100,0` for transactions only, `?limit=0,100` for UTXOs only
+
+3. **Avoid N+1 query patterns** - batch your requests whenever possible
+
+4. **Control parallel requests** - use 2-3 instances in parallel instead of spawning hundreds
+
+5. **Monitor request costs** via `context.request_cost` in API responses
+
+For detailed guidance, see the [Performance Best Practices section in the full documentation](https://blockchair.com/api/docs).
+
 ### Changelog
 
 * v.2.0.95 - December 23rd, 2021
