@@ -501,25 +501,25 @@ To ensure optimal performance and cost-efficiency when using the Blockchair API,
 ### 1. Use Batch Endpoints Instead of Sequential Requests (Avoid N+1 Pattern)
 
 **❌ Inefficient approach:**
-```http
+
 Making 100 separate requests:
+```http
 GET /bitcoin/dashboards/address/address1
 GET /bitcoin/dashboards/address/address2
 ...
 GET /bitcoin/dashboards/address/address100
-
-Cost: 100 request points
-Time: ~100 seconds (with rate limiting, sequential requests)
 ```
+Cost: 100 request points  
+Time: ~100 seconds (with rate limiting, sequential requests)
 
 **✅ Efficient approach:**
-```http
-Using batch endpoint:
-GET /bitcoin/dashboards/addresses/address1,address2,...,address100
 
-Cost: 10.9 request points (89% cheaper!)
-Time: ~1 second
+Using batch endpoint:
+```http
+GET /bitcoin/dashboards/addresses/address1,address2,...,address100
 ```
+Cost: 10.9 request points (89% cheaper!)  
+Time: ~1 second
 
 The batch endpoint is **~95 times faster** (when processing sequentially) and **89% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
 
@@ -528,20 +528,18 @@ The batch endpoint is **~95 times faster** (when processing sequentially) and **
 **❌ Inefficient for balance checks only:**
 ```http
 GET /bitcoin/dashboards/address/{:address}
-
-Returns: Full address data + transactions + UTXOs
-Cost: 1 request point per address (25,000 for 25,000 addresses)
 ```
+Returns: Full address data + transactions + UTXOs  
+Cost: 1 request point per address (25,000 for 25,000 addresses)
 
 **✅ Efficient for balance checks:**
 ```http
 POST /bitcoin/addresses/balances
 Body: addresses=addr1,addr2,...,addr25000
-
-Returns: Only balances (no transaction/UTXO data)
-Cost: 1 + 0.001 * 25000 = 26 request points
-Speed: Under 1 second for 25,000 addresses
 ```
+Returns: Only balances (no transaction/UTXO data)  
+Cost: 1 + 0.001 * 25000 = 26 request points  
+Speed: Under 1 second for 25,000 addresses
 
 This specialized endpoint is **extremely fast** (under 1 second for 25,000 addresses) and costs only **26 request points** instead of 25,000 (99.9% cheaper).
 
@@ -552,9 +550,8 @@ Use the `?limit=` parameter to fetch only the data you need:
 **❌ Inefficient:**
 ```http
 GET /bitcoin/dashboards/address/{:address}
-
-Returns: 100 transactions + 100 UTXOs by default
 ```
+Returns: 100 transactions + 100 UTXOs by default
 
 **✅ Efficient options:**
 ```text
@@ -586,14 +583,14 @@ For extended public keys (xpub), the API caches the derivation depth:
 **❌ Inefficient:**
 ```text
 Spawning 1000 parallel instances to complete in 10 seconds
-Result: Error 435 (too many parallel instances)
 ```
+Result: Error 435 (too many parallel instances - Blockchair custom error code)
 
 **✅ Efficient:**
 ```text
 Using 2-3 app instances in parallel
-Result: Smooth processing within rate limits
 ```
+Result: Smooth processing within rate limits
 
 **Rate limits:**
 - Free plan: 30 requests per minute (hard limit)
