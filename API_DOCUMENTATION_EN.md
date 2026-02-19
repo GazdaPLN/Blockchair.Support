@@ -521,7 +521,7 @@ Cost: 10.9 request points (95% cheaper!)
 Time: ~1 second
 ```
 
-The batch endpoint is **~95 times faster** and **90% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
+The batch endpoint is **~95 times faster** and **89% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
 
 ### 2. Use Specialized Endpoints for Simple Queries
 
@@ -605,7 +605,7 @@ Result: Smooth processing within rate limits
 | Operation | Inefficient Cost | Efficient Cost | Savings |
 |-----------|------------------|----------------|---------|
 | 100 addresses (separate) | 100 | 10.9 | 89% |
-| 25,000 balances (dashboard) | 25,000 | 26 | 99.9% |
+| 25,000 balances (dashboard) | 25,000 | 26 | ~99.9% |
 | xpub (100 addresses) | N/A | 10.9 | - |
 | Address with limit=0 | 1 | 1 | 0% (but faster) |
 

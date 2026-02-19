@@ -43,7 +43,7 @@ To ensure optimal performance and cost-efficiency:
 
 5. **Monitor request costs** via `context.request_cost` in API responses
 
-For detailed guidance, see the [Performance Best Practices section in the full documentation](https://blockchair.com/api/docs).
+For detailed guidance, see the [Performance Best Practices section in the full documentation](https://blockchair.com/api/docs#link_M055).
 
 ### Changelog
 
