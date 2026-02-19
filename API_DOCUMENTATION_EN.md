@@ -501,7 +501,7 @@ To ensure optimal performance and cost-efficiency when using the Blockchair API,
 ### 1. Use Batch Endpoints Instead of Sequential Requests (Avoid N+1 Pattern)
 
 **❌ Inefficient approach:**
-```
+```http
 Making 100 separate requests:
 GET /bitcoin/dashboards/address/address1
 GET /bitcoin/dashboards/address/address2
@@ -513,7 +513,7 @@ Time: ~100 seconds (with rate limiting, sequential requests)
 ```
 
 **✅ Efficient approach:**
-```
+```http
 Using batch endpoint:
 GET /bitcoin/dashboards/addresses/address1,address2,...,address100
 
@@ -526,7 +526,7 @@ The batch endpoint is **~95 times faster** (when processing sequentially) and **
 ### 2. Use Specialized Endpoints for Simple Queries
 
 **❌ Inefficient for balance checks only:**
-```
+```http
 GET /bitcoin/dashboards/address/{:address}
 
 Returns: Full address data + transactions + UTXOs
@@ -534,7 +534,7 @@ Cost: 1 request point per address (25,000 for 25,000 addresses)
 ```
 
 **✅ Efficient for balance checks:**
-```
+```http
 POST /bitcoin/addresses/balances
 Body: addresses=addr1,addr2,...,addr25000
 
@@ -550,14 +550,14 @@ This specialized endpoint is **extremely fast** (under 1 second for 25,000 addre
 Use the `?limit=` parameter to fetch only the data you need:
 
 **❌ Inefficient:**
-```
+```http
 GET /bitcoin/dashboards/address/{:address}
 
 Returns: 100 transactions + 100 UTXOs by default
 ```
 
 **✅ Efficient options:**
-```
+```text
 ?limit=0           → Returns only stats (no transactions, no UTXOs)
 ?limit=100,0       → Returns 100 transactions only (skips UTXOs)
 ?limit=0,100       → Returns 100 UTXOs only (skips transactions)
@@ -584,13 +584,13 @@ For extended public keys (xpub), the API caches the derivation depth:
 ### 5. Control Parallel Request Rate
 
 **❌ Inefficient:**
-```
+```text
 Spawning 1000 parallel instances to complete in 10 seconds
 Result: Error 435 (too many parallel instances)
 ```
 
 **✅ Efficient:**
-```
+```text
 Using 2-3 app instances in parallel
 Result: Smooth processing within rate limits
 ```
