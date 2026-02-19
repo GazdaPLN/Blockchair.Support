@@ -17,6 +17,7 @@
   + [Basic API request](#link_M03)
   + [Basic API response](#link_M04)
   + [API rate limits, API keys, and Premium API](#link_M05)
+  + [Performance best practices](#link_M055)
   + [API versioning and changelog](#link_M06)
 + [General stats endpoints](#link_M1) (Retrieve overall information about blockchains and tokens)
     + [Stats on multiple blockchains at once](#link_000)
@@ -490,6 +491,162 @@ If you have any questions about how to buy and use your key, you can always [con
 * `https://api.blockchair.com/bitcoin/dashboards/block/0?key=myfirstpasswordwas4321andifeltsmartaboutit&limit=0`
 
 There's an extra API endpoint for those who have an API key allowing to [track the number of request made](#link_600).
+
+
+
+## <a name="link_M055"></a> Performance best practices
+
+To ensure optimal performance and cost-efficiency when using the Blockchair API, follow these best practices:
+
+### 1. Use Batch Endpoints Instead of Sequential Requests (Avoid N+1 Pattern)
+
+**❌ Inefficient approach:**
+
+Making 100 separate requests:
+```http
+GET /bitcoin/dashboards/address/address1
+GET /bitcoin/dashboards/address/address2
+...
+GET /bitcoin/dashboards/address/address100
+```
+Cost: 100 request points  
+Time: ~100 seconds (with rate limiting, sequential requests)
+
+**✅ Efficient approach:**
+
+Using batch endpoint:
+```http
+GET /bitcoin/dashboards/addresses/address1,address2,...,address100
+```
+Cost: 10.9 request points (89% cheaper!)  
+Time: ~1 second
+
+The batch endpoint is **~95 times faster** (when processing sequentially) and **89% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
+
+### 2. Use Specialized Endpoints for Simple Queries
+
+**❌ Inefficient for balance checks only:**
+```http
+GET /bitcoin/dashboards/address/{:address}
+```
+Returns: Full address data + transactions + UTXOs  
+Cost: 1 request point per address (25,000 for 25,000 addresses)
+
+**✅ Efficient for balance checks:**
+```http
+POST /bitcoin/addresses/balances
+Body: addresses=addr1,addr2,...,addr25000
+```
+Returns: Only balances (no transaction/UTXO data)  
+Cost: 1 + 0.001 * 25000 = 26 request points  
+Speed: Under 1 second for 25,000 addresses
+
+This specialized endpoint is **extremely fast** (under 1 second for 25,000 addresses) and costs only **26 request points** instead of 25,000 (99.9% cheaper).
+
+### 3. Avoid Over-Fetching Data with Limit Options
+
+Use the `?limit=` parameter to fetch only the data you need:
+
+**❌ Inefficient:**
+```http
+GET /bitcoin/dashboards/address/{:address}
+```
+Returns: 100 transactions + 100 UTXOs by default
+
+**✅ Efficient options:**
+```text
+?limit=0           → Returns only stats (no transactions, no UTXOs)
+?limit=100,0       → Returns 100 transactions only (skips UTXOs)
+?limit=0,100       → Returns 100 UTXOs only (skips transactions)
+?limit=10          → Returns 10 transactions + 10 UTXOs
+```
+
+### 4. Optimize xpub Address Discovery
+
+For extended public keys (xpub), the API caches the derivation depth:
+
+**First request for an xpub:**
+- 3 database queries (checking 3 cycles of 20 addresses each)
+- Cost: `1 + 2 * depth - 0.1`
+
+**Subsequent requests:**
+- 1 database query (uses cached cycle count)
+- Significantly faster
+
+**Best practices:**
+- Cache xpub results on your end
+- Avoid redundant xpub lookups
+- Use the `?transaction_details=true` option sparingly
+
+### 5. Control Parallel Request Rate
+
+**❌ Inefficient:**
+```text
+Spawning 1000 parallel instances to complete in 10 seconds
+```
+Result: Error 435 (too many parallel instances - Blockchair custom error code)
+
+**✅ Efficient:**
+```text
+Using 2-3 app instances in parallel
+```
+Result: Smooth processing within rate limits
+
+**Rate limits:**
+- Free plan: 30 requests per minute (hard limit)
+- All plans: 5 requests per second (soft limit, enforced during high load)
+- Premium plans: `daily_request_limit / 10000` request points in parallel
+
+### 6. Request Cost Optimization Summary
+
+| Operation | Inefficient Approach | Efficient Approach | Savings |
+|-----------|---------------------|-------------------|---------|
+| 100 addresses | 100 individual requests (100 points) | 1 batch request (10.9 points) | 89% |
+| 25,000 balances | 25,000 individual requests (25,000 points) | 1 balances POST (26 points) | ~99.9% |
+| xpub (100 addresses) | N/A | Single xpub call (10.9 points) | - |
+| Address stats only | Full data request (1 point) | With limit=0 (1 point) | 0% cost, faster response |
+
+### 7. General Performance Tips
+
+1. **Cache responses** when appropriate (most responses are cached server-side too)
+2. **Use POST requests** for long parameter lists (e.g., many addresses)
+3. **Paginate efficiently** using `?offset=` and `?limit=` parameters
+4. **Request only needed fields** using specialized endpoints
+5. **Batch transactions, blocks, and addresses** whenever possible
+6. **Monitor your request costs** via `context.request_cost` in responses
+7. **Consider database dumps** for bulk data extraction (https://blockchair.com/dumps)
+
+### 8. Anti-Pattern Examples to Avoid
+
+**Don't:** Loop through addresses one by one
+```javascript
+// Bad: N+1 query pattern
+for (const address of addresses) {
+  const data = await fetch(`/bitcoin/dashboards/address/${address}`);
+}
+```
+
+**Do:** Use batch endpoints
+```javascript
+// Good: Single batch request
+const addresses = addressList.join(',');
+const data = await fetch(`/bitcoin/dashboards/addresses/${addresses}`);
+```
+
+**Don't:** Fetch full data when you only need balances
+```javascript
+// Bad: Over-fetching
+const data = await fetch(`/bitcoin/dashboards/address/${address}`);
+const balance = data.data[address].balance;
+```
+
+**Do:** Use the balances endpoint
+```javascript
+// Good: Minimal data fetch
+const data = await fetch(`/bitcoin/addresses/balances?addresses=${addresses}`);
+```
+
+Following these best practices will result in faster applications, lower costs, and better user experience.
 
 
 
