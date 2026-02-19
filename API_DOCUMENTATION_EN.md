@@ -509,7 +509,7 @@ GET /bitcoin/dashboards/address/address2
 GET /bitcoin/dashboards/address/address100
 
 Cost: 100 request points
-Time: ~100 seconds (with rate limiting)
+Time: ~100 seconds (with rate limiting, sequential requests)
 ```
 
 **✅ Efficient approach:**
@@ -517,11 +517,11 @@ Time: ~100 seconds (with rate limiting)
 Using batch endpoint:
 GET /bitcoin/dashboards/addresses/address1,address2,...,address100
 
-Cost: 10.9 request points (95% cheaper!)
+Cost: 10.9 request points (89% cheaper!)
 Time: ~1 second
 ```
 
-The batch endpoint is **~95 times faster** and **89% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
+The batch endpoint is **~95 times faster** (when processing sequentially) and **89% cheaper** for 100 addresses. The formula for batched requests is `1 + (0.1 * (entity_count - 1))`.
 
 ### 2. Use Specialized Endpoints for Simple Queries
 
@@ -530,7 +530,7 @@ The batch endpoint is **~95 times faster** and **89% cheaper** for 100 addresses
 GET /bitcoin/dashboards/address/{:address}
 
 Returns: Full address data + transactions + UTXOs
-Cost: 1 request point per address
+Cost: 1 request point per address (25,000 for 25,000 addresses)
 ```
 
 **✅ Efficient for balance checks:**
@@ -543,7 +543,7 @@ Cost: 1 + 0.001 * 25000 = 26 request points
 Speed: Under 1 second for 25,000 addresses
 ```
 
-This specialized endpoint is **extremely fast** (under 1 second for 25,000 addresses) and costs only **26 request points** instead of 2,500.
+This specialized endpoint is **extremely fast** (under 1 second for 25,000 addresses) and costs only **26 request points** instead of 25,000 (99.9% cheaper).
 
 ### 3. Avoid Over-Fetching Data with Limit Options
 
@@ -602,12 +602,12 @@ Result: Smooth processing within rate limits
 
 ### 6. Request Cost Optimization Summary
 
-| Operation | Inefficient Cost | Efficient Cost | Savings |
-|-----------|------------------|----------------|---------|
-| 100 addresses (separate) | 100 | 10.9 | 89% |
-| 25,000 balances (dashboard) | 25,000 | 26 | ~99.9% |
-| xpub (100 addresses) | N/A | 10.9 | - |
-| Address with limit=0 | 1 | 1 | 0% (but faster) |
+| Operation | Inefficient Approach | Efficient Approach | Savings |
+|-----------|---------------------|-------------------|---------|
+| 100 addresses | 100 individual requests (100 points) | 1 batch request (10.9 points) | 89% |
+| 25,000 balances | 25,000 individual requests (25,000 points) | 1 balances POST (26 points) | ~99.9% |
+| xpub (100 addresses) | N/A | Single xpub call (10.9 points) | - |
+| Address stats only | Full data request (1 point) | With limit=0 (1 point) | 0% cost, faster response |
 
 ### 7. General Performance Tips
 
